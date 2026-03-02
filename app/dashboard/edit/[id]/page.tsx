@@ -100,22 +100,6 @@ export default function EditPage() {
         if (hero && Boolean(hero.name)) {
             console.log("hero gambar baru")
             setStatus("Updating hero image...");
-            // const heroRenamed = renameImages(hero, "hero_");
-            // const authHero = await fetch("/api/auth-imagekit").then(res => res.json());
-
-            // const formDataHero = new FormData();
-            // formDataHero.append("file", heroRenamed);
-            // formDataHero.append("fileName", heroRenamed.name);
-            // formDataHero.append("publicKey", process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!);
-            // formDataHero.append("signature", authHero.signature);
-            // formDataHero.append("expire", authHero.expire.toString());
-            // formDataHero.append("token", authHero.token);
-
-            // const resHero = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-            //     method: "POST",
-            //     body: formDataHero,
-            // });
-            // const dataHero = await resHero.json();
             const result = await uploadToR2([hero])
             heroUrl = { url: result?.[0].url, fileId: result?.[0].key };
         }
@@ -170,7 +154,6 @@ export default function EditPage() {
                 scope_of_work: scope,
                 credit
             }).eq("id", id);
-            //hapus deletedImages to imagekit
 
             if (supabaseError) throw supabaseError;
             if (deleteImages.length > 0) {
