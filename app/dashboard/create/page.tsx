@@ -11,25 +11,25 @@ import RichTextEditor from "@/app/components/RichText";
 import { useRouter } from "next/navigation";
 import client from "@/lib/supabaseClient";
 import Loader from "@/app/components/Loader";
-import { renameImages } from "@/app/utils/func";
 import { getAllCategory } from "@/lib/actions";
 import CategorySelect from "./select";
 import TagsInput from "./inputTag";
 import { Textarea } from "@/components/ui/textarea";
-
+import { uploadToR2 } from "@/lib/r2";
+import { log } from "@/lib/logger";
 
 export default function CreatePostPage() {
     const router = useRouter();
-    const [date, setDate] = useState<any>("")
-    const [scope, setScope] = useState("")
-    const [credit, setCredit] = useState("")
-    const [tags, setTags] = useState([])
-    const [category, setCategory] = useState<any>([])
-    const [selectedCategory, setSelectedCategory] = useState("")
-    const [hero, setHero] = useState(null);
+    const [date, setDate] = useState("");
+    const [scope, setScope] = useState("");
+    const [credit, setCredit] = useState("");
+    const [tags, setTags] = useState([]);
+    const [category, setCategory] = useState<any>([]);
+    const [selectedCategory, setSelectedCategory] = useState("");
+    const [hero, setHero] = useState<File | null>(null);
     const [isPending, setIspending] = useState(false);
     const [status, setStatus] = useState("");
-    const [images, setImages] = useState([]);
+    const [images, setImages] = useState<File[]>([]);
     const [title, setTitle] = useState("");
     const [markdown, setMarkdown] = useState("");
     const [error, setError] = useState("");
@@ -38,100 +38,55 @@ export default function CreatePostPage() {
         setImages((prevImages) => prevImages.filter((_, i) => i !== index));
     }
 
-    function check() {
-        console.log(date, scope, credit, tags, selectedCategory)
-    }
-
-
     useEffect(() => {
         async function getCategories() {
-            const { data } = await getAllCategory()
-            setCategory(data)
+            const { data } = await getAllCategory();
+            setCategory(data);
         }
-        getCategories()
-    }, [])
+        getCategories();
+    }, []);
 
     const uploadSemuaGambar = async () => {
-        let heroUrl = null
-        const daftarUrlHasil = [];
-        console.log("uplaod image")
 
-        // 1. Upload HERO jika ada
+        let heroUrl = null;
+        const daftarUrlHasil = [];
+
         if (hero) {
             setStatus("Uploading hero image...");
-            const heroRenamed = renameImages(hero, "hero_");
-            const authHero = await fetch("/api/auth-imagekit").then(res => res.json());
-
-            const formDataHero = new FormData();
-            formDataHero.append("file", heroRenamed);
-            formDataHero.append("fileName", heroRenamed.name);
-            formDataHero.append("publicKey", process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!);
-            formDataHero.append("signature", authHero.signature);
-            formDataHero.append("expire", authHero.expire.toString());
-            formDataHero.append("token", authHero.token);
-
-            const resHero = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-                method: "POST",
-                body: formDataHero,
-            });
-            const dataHero = await resHero.json();
-            heroUrl = { url: dataHero.url, fileId: dataHero.fileId };
-        }
-
-        // 2. Upload Gallery Images
-        if (images.length > 0) {
-            setStatus(`Uploading ${images.length} images...`);
-            for (const file of images) {
-                const imageRenamed = renameImages(file, "post_");
-                const auth = await fetch("/api/auth-imagekit").then(res => res.json());
-
-                const formData = new FormData();
-                formData.append("file", imageRenamed);
-                formData.append("fileName", imageRenamed.name);
-                formData.append("publicKey", process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!);
-                formData.append("signature", auth.signature);
-                formData.append("expire", auth.expire.toString());
-                formData.append("token", auth.token);
-
-                const response = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                const data = await response.json();
-                daftarUrlHasil.push({ url: data.url, fileId: data.fileId });
-                console.log("Uploaded gallery image:", data.url);
+            const resHero = await uploadToR2([hero]);
+            if (resHero && resHero[0]) {
+                heroUrl = { url: resHero[0].url, fileId: resHero[0].key };
             }
         }
 
+        if (images.length > 0) {
+            setStatus(`Uploading ${images.length} images...`);
+            for (const file of images) {
+                const urlImage = await uploadToR2([file]);
+                if (urlImage && urlImage[0]) {
+                    const data = { url: urlImage[0].url, fileId: urlImage[0].key };
+                    daftarUrlHasil.push(data);
+                }
+            }
+        }
+        log("info", "heroUrl", heroUrl, "galleryUrls", daftarUrlHasil);
         return { heroUrl, galleryUrls: daftarUrlHasil };
     };
 
     async function uploadPost() {
         setError("");
-        if (title.trim() === "" || markdown.trim() === "" || (!hero && images.length === 0) || date.trim() === "" || scope.trim() === "" || selectedCategory.trim() === "" || tags.length === 0 || credit.trim() === "") {
-            setError("Please fill all fields and add at least one image.");
+        // Validasi
+        if (!title.trim() || !markdown.trim() || (!hero && images.length === 0) || !date || !selectedCategory) {
+            setError("Please fill all required fields.");
             return;
         }
-        // console.log("selectedCategory", selectedCategory)
-        // console.log("tags", tags)
-        // console.log("credit", credit)
-        // console.log("scope", scope)
-        // console.log("date", date)
-        // console.log("title", title)
-        // console.log("markdown", markdown)
-        // console.log("hero", hero)
-        // console.log("images", images)
-        // return
 
         setIspending(true);
         setStatus("Starting upload process...");
 
         try {
-            // Jalankan upload gambar dulu
-            const { galleryUrls, heroUrl } = await uploadSemuaGambar();
+            const { heroUrl, galleryUrls } = await uploadSemuaGambar();
 
-            // Simpan ke Supabase
             setStatus("Saving post to database...");
             const { error: supabaseError } = await client.from("posts").insert({
                 date,
@@ -142,7 +97,7 @@ export default function CreatePostPage() {
                 title,
                 content: markdown,
                 slug: title.toLowerCase().replace(/\s+/g, '-'),
-                images_urls: galleryUrls, // Ini menyimpan array [{url, fileId}, ...]
+                images_urls: galleryUrls,
                 hero: heroUrl
             });
 
@@ -174,7 +129,6 @@ export default function CreatePostPage() {
                         <CardTitle>New Post</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-
                         {/* Hero Image */}
                         <div className="space-y-2">
                             <Label className="font-semibold">Hero Image</Label>
@@ -199,7 +153,7 @@ export default function CreatePostPage() {
                             <Input value={title} onChange={e => setTitle(e.target.value)} id="title" placeholder="Enter post title" />
                         </div>
 
-                        {/* Additional Gallery Images */}
+                        {/* Gallery Images */}
                         <div className="space-y-2">
                             <Label>Gallery Images</Label>
                             <MyDropzone setImages={setImages} />
@@ -212,7 +166,6 @@ export default function CreatePostPage() {
                                             fill
                                             className="object-cover cursor-pointer"
                                             onClick={() => deleteImage(index)}
-                                            unoptimized
                                         />
                                     </div>
                                 ))}
@@ -225,37 +178,33 @@ export default function CreatePostPage() {
                             <RichTextEditor value={markdown} onchange={setMarkdown} />
                         </div>
 
-                        {/* date */}
-                        <div className="space-y-2">
-                            <Label htmlFor="date">Date</Label>
-                            <Input id="date" value={date} onChange={e => setDate(e.target.value)} type="date" placeholder="Enter post title" />
+                        {/* Date & Scope */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="date">Date</Label>
+                                <Input id="date" value={date} onChange={e => setDate(e.target.value)} type="date" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="scope">Scope Of Work</Label>
+                                <Input value={scope} onChange={e => setScope(e.target.value)} id="scope" />
+                            </div>
                         </div>
 
-                        {/* scope of work */}
+                        {/* Category & Tags */}
                         <div className="space-y-2">
-                            <Label htmlFor="scope">Scope Of Work</Label>
-                            <input value={scope} onChange={e => setScope(e.target.value)} id="scope" placeholder="" className="input rounded-sm ring-gray-300 ring-1  w-full  p-2" />
-                        </div>
-
-                        {/* Category */}
-                        <div className="space-y-2">
-                            {/* <Label htmlFor="title">Category</Label> */}
-                            {/* <Input type="date" placeholder="Enter post title" /> */}
                             <CategorySelect selectedCategory={selectedCategory} setSelectCategory={setSelectedCategory} categories={category} />
                         </div>
-
-                        {/* tags */}
                         <div className="space-y-2">
-                            <Label htmlFor="title">Category</Label>
-                            {/* <Input type="date" placeholder="Enter post title" /> */}
-                            <TagsInput tags={tags} setTags={setTags} />
+                            <Label>Tags</Label>
+                            <TagsInput id="tags" tags={tags} setTags={setTags} />
                         </div>
 
-                        {/* credit */}
+                        {/* Credit */}
                         <div className="space-y-2">
-                            <Label htmlFor="scope">credit</Label>
-                            <Textarea value={credit} onChange={e => setCredit(e.target.value)} id="scope" placeholder="" className="bg-input  w-full min-h-24 p-2" />
+                            <Label htmlFor="credit">Credit</Label>
+                            <Textarea value={credit} onChange={e => setCredit(e.target.value)} id="credit" className="min-h-24" />
                         </div>
+
                         {isPending && <Loader>{status}</Loader>}
                         {error && <p className="text-red-500 text-sm">{error}</p>}
 
@@ -263,16 +212,10 @@ export default function CreatePostPage() {
                             <Button disabled={isPending} variant="outline" onClick={() => router.push("/dashboard")}>
                                 Cancel
                             </Button>
-                            <Button className="cursor-pointer" disabled={isPending}
-                                onClick={uploadPost}
-
-                            // onClick={uploadPost}
-
-                            >
+                            <Button className="cursor-pointer" disabled={isPending} onClick={uploadPost}>
                                 {isPending ? "Processing..." : "Publish Post"}
                             </Button>
                         </div>
-
                     </CardContent>
                 </Card>
             </main>

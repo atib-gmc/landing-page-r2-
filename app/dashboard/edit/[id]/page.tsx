@@ -16,6 +16,8 @@ import { getAllCategory, getSinglePost } from "@/lib/actions";
 import CategorySelect from "../../create/select";
 import TagsInput from "../../create/inputTag";
 import { Textarea } from "@/components/ui/textarea";
+import { deleteFromR2, uploadToR2 } from "@/lib/r2";
+import { log } from "@/lib/logger";
 
 export default function EditPage() {
     // const [post, setPost] = useState<any>(null)
@@ -34,7 +36,7 @@ export default function EditPage() {
     const [title, setTitle] = useState("");
     const [markdown, setMarkdown] = useState("");
     const [error, setError] = useState("");
-    const [deleteImages, setDeleteImages] = useState<string[]>([]);
+    const [deleteImages, setDeleteImages] = useState<{ fileId: string }[]>([]);
 
     useEffect(() => {
         async function getData() {
@@ -43,6 +45,7 @@ export default function EditPage() {
                 const { data: categories } = await getAllCategory()
                 setCategory(categories)
                 const dataPost = await getSinglePost(id);
+                console.log("dataPost:", dataPost)
                 if (dataPost?.data) {
                     const p = dataPost.data;
                     // setPost(p);aing make imagefix hostingan gambarna, free storage 10gb  
@@ -55,6 +58,8 @@ export default function EditPage() {
                     setDate(p?.date || "");
                     setScope(p?.scope_of_work || "");
                     setCredit(p?.credit || "");
+                    console.log("fetch tags:", p?.tags)
+
                     setTags(p?.tags || []);
                     setSelectedCategory(p?.category_id || "");
 
@@ -72,83 +77,72 @@ export default function EditPage() {
     }, [id]); // Tambahkan id sebagai dependency agar aman
 
     function deleteImage(image: any) {
-        if (image.url) {
-            setDeleteImages(pre => [...pre, image.fileId]);
+        // Ambil key dari berbagai kemungkinan struktur
+        const fileId = image.fileId || image.key;
+
+        if (fileId) {
+            setDeleteImages(prev => [...prev, { fileId }]);
         }
 
-        setImages((prevImages: any) => prevImages.filter((img: any) => img !== image));
+        setImages((prevImages: any) =>
+            prevImages.filter((img: any) => img !== image)
+        );
     }
 
-    console.log(deleteImages)
+    // console.log(images)
     const uploadSemuaGambar = async () => {
-        let heroUrl = hero.url ? hero : null;
-        const daftarUrlHasil = [];
-        console.log("uplaod image")
-        console.log("hero url", heroUrl)
-        console.log("hero ", hero)
 
+        let heroUrl = hero.url ? hero : null;
+        const daftarUrlHasil: any = [];
 
         // 1. Upload HERO jika ada dan jika hero imagenya file baru
         console.log("hero baru ?", (hero && Boolean(hero.name)))
         if (hero && Boolean(hero.name)) {
             console.log("hero gambar baru")
             setStatus("Updating hero image...");
-            const heroRenamed = renameImages(hero, "hero_");
-            const authHero = await fetch("/api/auth-imagekit").then(res => res.json());
+            // const heroRenamed = renameImages(hero, "hero_");
+            // const authHero = await fetch("/api/auth-imagekit").then(res => res.json());
 
-            const formDataHero = new FormData();
-            formDataHero.append("file", heroRenamed);
-            formDataHero.append("fileName", heroRenamed.name);
-            formDataHero.append("publicKey", process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!);
-            formDataHero.append("signature", authHero.signature);
-            formDataHero.append("expire", authHero.expire.toString());
-            formDataHero.append("token", authHero.token);
+            // const formDataHero = new FormData();
+            // formDataHero.append("file", heroRenamed);
+            // formDataHero.append("fileName", heroRenamed.name);
+            // formDataHero.append("publicKey", process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!);
+            // formDataHero.append("signature", authHero.signature);
+            // formDataHero.append("expire", authHero.expire.toString());
+            // formDataHero.append("token", authHero.token);
 
-            const resHero = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-                method: "POST",
-                body: formDataHero,
-            });
-            const dataHero = await resHero.json();
-            heroUrl = { url: dataHero.url, fileId: dataHero.fileId };
+            // const resHero = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+            //     method: "POST",
+            //     body: formDataHero,
+            // });
+            // const dataHero = await resHero.json();
+            const result = await uploadToR2([hero])
+            heroUrl = { url: result?.[0].url, fileId: result?.[0].key };
         }
 
+        // let imagesForUpload = []
         // 2. Upload Gallery Images
         if (images.length > 0) {
             setStatus(`Uploading ${images.length} images...`);
-            for (const file of images) {
-                if (!file.url) {
-                    // Hanya upload file baru (File object)
-                    const imageRenamed = renameImages(file, "post_");
 
-                    const auth = await fetch("/api/auth-imagekit").then(res => res.json());
-
-                    const formData = new FormData();
-                    formData.append("file", imageRenamed);
-                    formData.append("fileName", imageRenamed.name);
-                    formData.append("publicKey", process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!);
-                    formData.append("signature", auth.signature);
-                    formData.append("expire", auth.expire.toString());
-                    formData.append("token", auth.token);
-
-                    const response = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-                        method: "POST",
-                        body: formData,
-                    });
-
-                    const data = await response.json();
-                    daftarUrlHasil.push({ url: data.url, fileId: data.fileId });
-                    console.log("Uploaded gallery image:", data.url);
-                } else {
-                    // Jika sudah ada URL, langsung masukkan
-                    daftarUrlHasil.push(file);
-                }
+            const imagesForUpload = images.filter((image: any) => image.name)
+            if (imagesForUpload.length == 0) {
+                return { heroUrl, galleryUrls: [...images] };
             }
+            const result = await uploadToR2(imagesForUpload)
+            console.log(result)
+            daftarUrlHasil.push(...result!)
+
+        } else {
+            daftarUrlHasil.push(...images)
         }
 
         return { heroUrl, galleryUrls: daftarUrlHasil };
     };
 
     async function uploadPost() {
+        console.log(tags)
+        return
         setError("");
         if (title.trim() === "" || markdown.trim() === "" || (!hero && images.length === 0) || !hero) {
             setError("Please fill all fields and add at least one image.");
@@ -181,7 +175,7 @@ export default function EditPage() {
             if (supabaseError) throw supabaseError;
             if (deleteImages.length > 0) {
                 setStatus("Deleting removed images...");
-                deleteImage(deleteImages);
+                deleteFromR2(deleteImages);
             }
 
             alert("Post Updated successfully!");
@@ -226,6 +220,7 @@ export default function EditPage() {
                                         fill
                                         className="object-cover cursor-pointer"
                                         onClick={() => setHero(null)}
+                                        unoptimized
                                     />
                                 ) : (
                                     <MyDropzone maxFiles={1} multiple={false} setImages={setHero} />
@@ -246,8 +241,6 @@ export default function EditPage() {
                             <div className="flex gap-2 flex-wrap mt-2">
                                 {images.map((file: any, i: any) => (
                                     <div key={i} className="relative  h-20 w-20 border rounded-md overflow-hidden">
-                                        {/* {console.log("Rendering image:", file)} */}
-                                        {/* <pre>{JSON.stringify(typeof file)}, {i}</pre> */}
                                         <Image
                                             src={file.url ? file.url : URL.createObjectURL(file)}
                                             alt="preview"
@@ -306,7 +299,10 @@ export default function EditPage() {
                             <Button disabled={isPending} variant="outline" onClick={() => router.push("/dashboard")}>
                                 Cancel
                             </Button>
-                            <Button disabled={isPending} onClick={uploadPost}>
+                            <Button disabled={isPending}
+                                onClick={uploadPost}
+                            // onClick={uploadSemuaGambar}
+                            >
                                 {isPending ? "Processing..." : "Update Post"}
                             </Button>
                         </div>

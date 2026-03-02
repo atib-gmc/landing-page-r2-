@@ -1,6 +1,7 @@
 // components/ArticleGrid.js
 "use client";
 import { getAllPosts } from '@/lib/actions';
+import { log } from '@/lib/logger';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -8,12 +9,12 @@ import { useEffect, useState } from 'react';
 
 const ArticleCard = (post: any) => {
     // Use a dynamic height class based on the 'isTall' property
-
+    log("info", "post", post);
     return (
         <Link href={`/content/${post?.article.id}`} key={post?.article.id} className={`  max-h-96  `}>
             <div
-                style={{ background: `url(${post?.article.hero?.url})` }}
-                className={`relative flex items-end p-6 transition-transform overflow-hidden duration-300 ease-in-out transform hover:scale-[1.02] rounded-lg shadow hover:shadow-lg h-80  text-white`}
+                style={{ background: `url(${post?.article.hero?.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                className={`relative bg-cover bg-center flex items-end p-6 transition-transform overflow-hidden duration-300 ease-in-out transform hover:scale-[1.02] rounded-lg shadow hover:shadow-lg h-80  text-white`}
             >
                 {/* The Whoosh logo would be an Image component here */}
 
@@ -21,7 +22,8 @@ const ArticleCard = (post: any) => {
             </div>
 
             <p className="text-sm pt-2 text-gray-600">
-                #Branding #Illustration
+                {/* {post?.article.tags.map((tag: any) => <span key={tag.name} className="text-gray-600">#{tag.name}</span>)} */}
+                {post?.article.tags?.map((tag: any) => <span key={tag}>#{tag} </span>)}
                 {/* {article.category} */}
             </p>
             <h2 className="text-xl py-2 self-start text-foreground   ">

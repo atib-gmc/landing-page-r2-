@@ -14,7 +14,7 @@ export default function Navbar() {
     const user = GetUser();
 
     // pages that allow transparent navbar at top
-    const transparentPages = ["/content", "/about"];
+    const transparentPages = ["/content", "/about", "/work"];
 
     const isTransparentPage = transparentPages.some(
         (page) => pathname === page || pathname.startsWith(page + "/")
@@ -82,18 +82,22 @@ export default function Navbar() {
         >
             <nav className="mx-auto flex md:p-8 p-5 py-4  items-center flex-wrap md:flex-nowrap  md:justify-between">
                 {/* Logo */}
-                <Link className="hover:skew-3 duration-200 transition-all  md:mx-auto w-full" href="/">
-                    <Image
-                        src="/SAM - Logo-01.png"
-                        alt="logo"
-                        width={150}
-                        height={60}
-                        priority
-                        className={useTransparent ? "invert" : ""}
-                    />
-                </Link>
+                <div className="w-full  flex justify-start items-start">
 
-                <ul className="flex items-center gap-6">
+                    <Link className="hover:-translate-y-4 block  duration-200 transition-all    " href="/">
+                        <Image
+                            src="/SAM - Logo-01.png"
+                            alt="logo"
+                            width={150}
+                            height={60}
+                            priority
+                            className={useTransparent ? "invert" : ""}
+                        />
+                    </Link>
+
+                </div>
+
+                <ul className="flex items-center gap-6 flex-wrap md:flex-nowrap">
                     <li>
                         <Link href="/work" className={linkClass("/work")}>
                             Work
@@ -104,8 +108,8 @@ export default function Navbar() {
                             About
                         </Link>
                     </li>
-                    <li className="bg-blue-500 rounded-full py-[2px] whitespace-nowrap text-white">
-                        <Link href="/contact" className={linkClass("/contact") + " cursor-pointer text-white"}>
+                    <li className="bg-blue-500 rounded-full py-[2px]  whitespace-nowrap text-white">
+                        <Link style={{ padding: "20px" }} href="/contact" className={("/contact") + " cursor-pointer text-white"}>
                             Start Your Project
                         </Link>
                     </li>
@@ -135,6 +139,6 @@ export default function Navbar() {
                     )}
                 </ul>
             </nav>
-        </header>
+        </header >
     );
 }

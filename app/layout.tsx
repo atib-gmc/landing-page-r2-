@@ -23,6 +23,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // console.log(process.env.R2_ACCOUNT_ID)
+  // console.log(process.env.R2_ACCESS_KEY_ID)
+  // console.log(process.env.R2_SECRET_ACCESS_KEY)
+  // console.log(process.env.R2_BUCKET_NAME)
   return (
     <html lang="en" >
       <body

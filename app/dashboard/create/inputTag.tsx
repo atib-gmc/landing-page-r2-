@@ -3,6 +3,7 @@ import React, { useState, KeyboardEvent, ChangeEvent, Dispatch } from 'react';
 const TagsInput = ({ id, setTags, tags }: { id: string, setTags: Dispatch<any>, tags: string[] }) => {
     const [inputValue, setInputValue] = useState("");
 
+    console.log(tags)
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         // Jika karakter terakhir yang diketik adalah koma
@@ -21,6 +22,7 @@ const TagsInput = ({ id, setTags, tags }: { id: string, setTags: Dispatch<any>, 
             setInputValue(value);
         }
     };
+
 
     const removeTag = (indexToRemove: number) => {
         setTags(tags.filter((_, index) => index !== indexToRemove));

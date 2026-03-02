@@ -4,27 +4,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getPosts } from "@/lib/db";
+import { getCategories, getPosts } from "@/lib/db";
 import { useEffect, useState } from "react";
 import Modal from "@/app/components/Modal";
+import data from "@/lib/data";
+import Posts from "./components/Posts";
 
 export default function DashboardPage() {
     const [refresh, setRefresh] = useState(false)
     // const user = GetUser()
     const [posts, setPosts] = useState<any>(null)
+    const [categories, setCategories] = useState<any>([])
     const router = useRouter()
     useEffect(() => {
         async function fetchPosts() {
             const data: any = await getPosts();
+            const categories = await getCategories()
+            setCategories(categories.data)
+            console.log("category: ", categories)
             console.log(data)
-            setPosts(data);
+            setPosts(data?.data);
         }
         fetchPosts();
     }, [refresh])
 
     // if (!user) router.push("/")
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 mt-10">
             {/* Navbar */}
             {/* <header className="fixed top-0 left-0 w-full bg-white border-b z-50">
                 <div className="mx-auto max-w-7xl flex items-center justify-between px-6 py-4">
@@ -45,7 +51,7 @@ export default function DashboardPage() {
                         <CardHeader>
                             <CardTitle>Posts</CardTitle>
                         </CardHeader>
-                        <CardContent className="text-3xl font-bold">{posts?.data?.length || 0}</CardContent>
+                        <CardContent className="text-3xl font-bold">{posts?.length || 0}</CardContent>
                     </Card>
                     <Card>
                         <CardHeader>
@@ -62,25 +68,9 @@ export default function DashboardPage() {
                 </section>
 
                 {/* Content Section */}
-                <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <Card className="lg:col-span-2">
-                        <CardHeader>
-                            <CardTitle>Recent Post</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4 text-sm">
-                            {posts?.data?.map((post: any) => (
-                                <div key={post.id} className="p-4 border space-x-2 border-gray-200 rounded-lg hover:shadow-md transition">
-                                    <Link href={`/content/${post.id}`}><h3 className="text-lg font-semibold mb-2">{post.title}</h3></Link>
-                                    <Button className="cursor-pointer" variant="outline" size="sm" onClick={() => router.push(`/dashboard/edit/${post.id}`)}>Edit Post</Button>
-                                    <Modal setRefresh={setRefresh} post={post} />
-
-                                    {/* <Button variant="outline" size="sm" className="h-7 bg-black text-white" >Delete</Button> */}
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-
-                    <Card>
+                <section className="flex    w-full   grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Posts categories={categories} refresh={refresh} setRefresh={setRefresh} posts={posts} />
+                    <Card className="self-start">
                         <CardHeader>
                             <CardTitle>Quick Actions</CardTitle>
                         </CardHeader>

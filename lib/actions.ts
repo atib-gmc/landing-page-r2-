@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 // import ImageKit from "imagekit"; // Import SDK-nya di sini
 import client from "./supabaseClient";
 import { imagekit } from "@/app/utils/imagekit";
+import { deleteFromR2 } from "./r2";
 
 // Inisialisasi ImageKit di server
 export async function deletePost(post: any) {
@@ -12,38 +13,13 @@ export async function deletePost(post: any) {
         // 1. Tangani Hero Image (Karena formatnya String JSON)
         if (post.hero) {
             try {
-                // Parse string JSON menjadi object
-                const heroData = typeof post.hero === 'string'
-                    ? JSON.parse(post.hero)
-                    : post.hero;
-
-                if (heroData && heroData.fileId) {
-                    console.log("Menghapus Hero dari ImageKit:", heroData.fileId);
-                    await imagekit.deleteFile(heroData.fileId);
-                }
+                await deleteFromR2([...post.images_urls, post.hero]);
             } catch (e) {
                 console.error("Gagal parse data hero:", e);
-                // Kita lanjutkan saja agar post di database tetap bisa terhapus
             }
         }
 
-        // 2. Tangani Gallery Images (Array images_urls)
-        if (post.images_urls && Array.isArray(post.images_urls)) {
-            console.log(`Menghapus ${post.images_urls.length} gallery images...`);
-
-            for (const img of post.images_urls) {
-                if (img.fileId) {
-                    try {
-                        await imagekit.deleteFile(img.fileId);
-                        console.log("Terhapus dari ImageKit:", img.fileId);
-                    } catch (err) {
-                        console.error(`Gagal hapus file ${img.fileId} di ImageKit:`, err);
-                    }
-                }
-            }
-        }
-
-        // 3. Hapus data di Supabase
+        // 2. Hapus data di Supabase
         const { error: supabaseError } = await client
             .from("posts")
             .delete()
@@ -53,7 +29,7 @@ export async function deletePost(post: any) {
             return { success: false, message: supabaseError.message };
         }
 
-        // 4. Update UI Dashboard
+        // 3. Update UI Dashboard
         revalidatePath("/dashboard");
 
         return { success: true, message: "Post and images deleted successfully" };
@@ -72,7 +48,7 @@ export async function getAllCategory() {
 }
 
 export async function getAllPosts() {
-    return await client.from("posts").select("*").order("created_at", { ascending: false });
+    return await client.from("posts").select("*,categories (id,name)").order("created_at", { ascending: false });
 }
 
 export async function deleteImage(fileId: any[] | string) {

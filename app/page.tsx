@@ -8,7 +8,7 @@ export default function Home() {
   return (<div className="flex min-h-screen px-12 items-center justify-center  font-sans ">
     <main className="min-h-screen flex w-full mt-10  flex-col items-center justify-between py-10  sm:items-start">
       <div className="hero bg-white mb-10 ">
-        <Image src="/intro-light.gif" quality={70} alt="Intro GIF" width={700} height={380} className="mx-auto scale-200 md:scale-150 xl:scale-200 md:pt-8.54 pt-14 45 zx pb-20 min-h-screen " />
+        <Image src="/intro-light.gif" quality={70} alt="Intro GIF" unoptimized width={700} height={380} className="mx-auto scale-200 md:scale-150 xl:scale-200 md:pt-8.54 pt-14 45 zx pb-20 min-h-screen " />
         <div className="intos flex gap-4 md:flex-row flex-col   mt-8 flex-wrap relative">
           <div className="row flex-2  flex">
             <motion.p
