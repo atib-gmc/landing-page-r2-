@@ -1,10 +1,8 @@
 "use server"
 import { revalidatePath } from "next/cache";
-// import ImageKit from "imagekit"; // Import SDK-nya di sini
 import client from "./supabaseClient";
 import { deleteFromR2 } from "./r2";
 
-// Inisialisasi ImageKit di server
 export async function deletePost(post: any) {
     try {
         console.log("Memulai proses penghapusan post:", post.id);
