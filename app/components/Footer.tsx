@@ -41,12 +41,10 @@ const Footer = () => {
                     <div className="md:col-span-4 pt-2">
                         <h3 className="text-lg font-semibold mb-4 text-gray-200">Network</h3>
                         <nav className="flex flex-wrap gap-x-4 gap-y-2 text-gray-400">
-                            <Link href="#" className="hover:text-white transition-colors">Instagram</Link>
+                            <a href="https://www.instagram.com/samsaracreative_" target="_blank" className="hover:text-white transition-colors">Instagram</a>
                             <span className="text-gray-600">|</span>
-                            <Link href="#" className="hover:text-white transition-colors">Behance</Link>
+                            <a href="https://www.behance.net/Samagency_/moodboards" target="_blank" className="hover:text-white transition-colors">Behance</a>
                             <span className="text-gray-600">|</span>
-                            <Link href="#" className="hover:text-white transition-colors">Dribbble</Link>
-                            <Link href="#" className="hover:text-white transition-colors block w-full">LinkedIn</Link>
                         </nav>
                     </div>
 
