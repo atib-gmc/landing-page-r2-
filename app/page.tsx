@@ -2,8 +2,21 @@
 import { motion } from "motion/react"
 import Image from "next/image";
 import ArticleGrid from "./components/Projects";
+import { useEffect, useState } from "react";
+import { getClientImages } from "@/lib/r2";
 
 export default function Home() {
+  const [clientIcons, setClientIcons] = useState<any[]>([])
+  async function fetchData() {
+    const data = await getClientImages();
+    if (data) setClientIcons(data);
+  }
+
+  // 2. Jalankan saat mount pertama kali
+  useEffect(() => {
+    fetchData();
+  }, []);
+
 
   return (<div className="flex min-h-screen px-12 items-center justify-center  font-sans ">
     <main className="min-h-screen flex w-full mt-10  flex-col items-center justify-between py-10  sm:items-start">
@@ -39,11 +52,16 @@ export default function Home() {
           <div className="row border-l-2  border-black flex-1  px-10 ">
             <h3 className="text-xl font-semibold py-2 text-[#252525]">Our Clients :</h3>
             <div className="flex  gap-2 md:justify-start md:items-center justify-start items-center ">
-              <div className="socials-links w-14 h-14 rounded-md bg-gray-400"></div>
-              <div className="socials-links w-14 h-14 rounded-md bg-gray-400"></div>
-              <div className="socials-links w-14 h-14 rounded-md bg-gray-400"></div>
-              <div className="socials-links w-14 h-14 rounded-md bg-gray-400"></div>
 
+              {clientIcons.map((image) => (
+                <button className='relative h-[80px] w-[80px] overflow-hidden border rounded cursor-pointer group'>
+                  <img
+                    src={image?.url || ""}
+                    alt={image?.key}
+                    className='w-full h-full object-cover'
+                  />
+                </button>
+              ))}
             </div>
 
           </div>

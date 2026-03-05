@@ -34,7 +34,7 @@ export default function DashboardPage() {
             {/* Main */}
             <main className="pt-28 mx-auto max-w-7xl px-6">
                 {/* Top Section */}
-                <section className="grid  grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                {/* <section className="grid  grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                     <Card>
                         <CardHeader>
                             <CardTitle>Posts</CardTitle>
@@ -53,13 +53,12 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent className="text-3xl font-bold">5</CardContent>
                     </Card>
-                </section>
+                </section> */}
 
                 {/* Content Section */}
-                <section className="flex  w-full     grid-cols-1 lg:grid-cols-3 gap-6">
+                <section className="flex  w-full   grid-cols-1 lg:grid-cols-3 gap-6">
                     <Posts categories={categories} refresh={refresh} setRefresh={setRefresh} posts={posts} />
-                    <div className="col space-y-3">
-
+                    <div className="col space-y-3 w-md ">
                         <Card className="self-start w-xs">
                             <CardHeader>
                                 <CardTitle>Quick Actions</CardTitle>
@@ -68,11 +67,11 @@ export default function DashboardPage() {
                                 <Button onClick={() => router.push("/dashboard/create")} className="cursor-pointer">New Project</Button>
                             </CardContent>
                         </Card>
+                        <Clients />
                     </div>
                 </section>
 
                 <section className="Clients mt-5">
-                    <Clients />
                 </section>
             </main>
 

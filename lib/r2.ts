@@ -1,6 +1,6 @@
 // lib/r2.ts
 "use server";
-import { S3Client, PutObjectCommand, DeleteObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { log } from "./logger";
 
 // --- FIX: Create a function to get the client with credentials ---
@@ -18,27 +18,68 @@ const getR2Client = () => {
 };
 // -----------------------------------------------------------------
 
-export async function uploadToR2(files: File[]) {
-    console.log("fired uploadToR2", files)
-    if (files.length === 0) return;
+
+
+
+export async function getClientImages() {
+    try {
+        const r2Client = getR2Client();
+
+        const command = new ListObjectsV2Command({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Prefix: "clients/", // Mengunci pencarian hanya di folder portfolio
+        });
+
+        const response = await r2Client.send(command);
+
+        // Filter agar nama folder itu sendiri tidak ikut masuk ke daftar (opsional)
+        const images = response.Contents?.filter(item => item.Key !== "clients/")
+            .map((item) => ({
+                key: item.Key,
+                url: `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${item.Key}`,
+            })) || [];
+
+        return images;
+    } catch (error) {
+        console.error("Gagal mengambil gambar portfolio:", error);
+        return [];
+    }
+}
+
+
+
+
+export async function uploadToR2(files: File[], folderName: string = "") {
+    console.log("fired uploadToR2", files);
+    if (files.length === 0) return [];
 
     try {
-        const r2Client = getR2Client(); // Initialize client here
+        const r2Client = getR2Client();
+
+        // Menentukan prefix folder
+        const prefix = folderName ? `${folderName}/` : "";
+
         const promises = files.map(async (file) => {
-            const key = `${Date.now()}-${file.name}`
+            // Gabungkan folder + timestamp + nama file
+            const key = `${prefix}${Date.now()}-${file.name}`;
+
             const command = new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
                 Key: key,
                 Body: new Uint8Array(await file.arrayBuffer()),
                 ContentType: file.type,
             });
-            const result = await r2Client.send(command);
+
+            await r2Client.send(command);
+
             const finalImageUrl = `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${key}`;
             console.log("image url :", finalImageUrl);
-            return { url: finalImageUrl, key }
+
+            return { url: finalImageUrl, key };
         });
+
         const results = await Promise.all(promises);
-        log("info", "Uploaded to R2:", results);
+        console.log("info", "Uploaded to R2:", results);
         return results;
 
     } catch (error) {
