@@ -99,6 +99,11 @@ export default function Navbar() {
 
                 <ul className="flex items-center gap-6 flex-wrap md:flex-nowrap">
                     <li>
+                        <Link href="/" className={linkClass("/")}>
+                            Home
+                        </Link>
+                    </li>
+                    <li>
                         <Link href="/work" className={linkClass("/work")}>
                             Work
                         </Link>
@@ -108,11 +113,16 @@ export default function Navbar() {
                             About
                         </Link>
                     </li>
-                    <li className="bg-blue-500 rounded-full py-[2px]  whitespace-nowrap text-white">
+                    <li>
+                        <a href="/#contact" className={linkClass("#contact")}>
+                            Contact
+                        </a>
+                    </li>
+                    {/* <li className="bg-blue-500 rounded-full py-[2px]  whitespace-nowrap text-white">
                         <Link style={{ padding: "20px" }} href="/contact" className={("/contact") + " cursor-pointer text-white"}>
                             Start Your Project
                         </Link>
-                    </li>
+                    </li> */}
 
                     {user && (
                         <>

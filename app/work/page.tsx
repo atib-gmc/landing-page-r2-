@@ -67,7 +67,7 @@ export default function page() {
         }
     }
     return (
-        <div className="w-screen bg-black ">
+        <div className="w-screen bg-black pb-10">
             <div className="hero w-full h-screen">
                 <img src="works.jpg" alt="works" className="w-full object-cover  h-full" />
             </div>
@@ -96,7 +96,7 @@ export default function page() {
                 </div>
             </div>
             {/* collapse */}
-            <div className={`transition-all duration-500 ease-in-out overflow-hidden bg-black px-8 ${open ? "max-h-96 opacity-100 py-4" : "max-h-0 opacity-0 py-0"
+            <div className={`transition-all py-4 duration-500 ease-in-out overflow-hidden bg-black px-8 ${open ? "max-h-96 opacity-100 py-4" : "max-h-0 opacity-0 py-0"
                 }`}>
                 <Button size='sm' className={`${category === "all" ? "bg-white text-black" : "bg-black text-white"} my-2 transition-all duration-300 mr-2`} variant='outline' onClick={() => setCategory("all")} >All</Button>
                 {categories.map((project) => (

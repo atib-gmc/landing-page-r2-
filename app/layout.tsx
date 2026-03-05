@@ -28,7 +28,7 @@ export default function RootLayout({
   // console.log(process.env.R2_SECRET_ACCESS_KEY)
   // console.log(process.env.R2_BUCKET_NAME)
   return (
-    <html lang="en" >
+    <html lang="en" className="scroll-smooth">
       <body
         className={`${geistSans.variable} ${geistMono.variable} overflow-x-hidden`}
         style={{ isolation: 'auto' }} // Pastikan body tidak mengisolasi layer
