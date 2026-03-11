@@ -54,7 +54,7 @@ export default function Home() {
             <div className="flex  gap-2 md:justify-start md:items-center justify-start items-center ">
 
               {clientIcons.map((image) => (
-                <button className='relative h-[80px] w-[80px] overflow-hidden border rounded cursor-pointer group'>
+                <button key={image.url} className='relative h-[80px] w-[80px] overflow-hidden border rounded cursor-pointer group'>
                   <img
                     src={image?.url || ""}
                     alt={image?.key}
