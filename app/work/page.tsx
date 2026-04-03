@@ -48,7 +48,6 @@ export default function page() {
       console.log(categoryResult)
       setCategories(categoryResult?.data! as any)
       if (postResult.data) {
-
         setProjects(postResult.data)
       }
     }

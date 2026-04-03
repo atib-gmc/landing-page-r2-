@@ -1,90 +1,110 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { getCategories, getPosts } from "@/lib/db";
-import { useEffect, useState } from "react";
+
+// Komponen Internal
 import Posts from "./components/Posts";
-import Modal from "../components/Modal";
 import Clients from "../components/Clients";
+import GetUser from "../utils/GetUser";
 
 export default function DashboardPage() {
-    const [refresh, setRefresh] = useState(false)
-    // const user = GetUser()
-    const [posts, setPosts] = useState<any>(null)
-    const [categories, setCategories] = useState<any>([])
-    const router = useRouter()
-    useEffect(() => {
-        async function fetchPosts() {
-            const data: any = await getPosts();
-            const categories = await getCategories()
-            setCategories(categories.data)
-            console.log("category: ", categories)
-            console.log(data)
-            setPosts(data?.data);
-        }
-        fetchPosts();
-    }, [refresh])
+  const [refresh, setRefresh] = useState(false);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
 
-    // if (!user) router.push("/")
+  // Ambil data user dari hook custom kamu
+  const user = GetUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    // STRATEGI: Jangan lakukan apa-apa selama 'user' masih undefined (sedang loading)
+    if (user === undefined) return;
+
+    // Jika pengecekan selesai dan user fix tidak ada, baru usir ke homepage
+    if (!user || !user.email) {
+      router.push("/");
+      return;
+    }
+
+    // Jika user ada, baru ambil data posts & categories
+    async function fetchData() {
+      setIsDataLoading(true);
+      try {
+        const [postsResponse, categoriesResponse] = await Promise.all([
+          getPosts(),
+          getCategories(),
+        ]);
+
+        setPosts(postsResponse?.data || []);
+        setCategories(categoriesResponse?.data || []);
+      } catch (error) {
+        console.error("Fetch error:", error);
+      } finally {
+        setIsDataLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [user, router, refresh]);
+
+  // 1. STATE LOADING: Muncul saat 'user' masih dicari atau data sedang ditarik
+  // Ini mencegah UI Dashboard "berkedip" sebelum diusir
+  if (user === undefined || (user && isDataLoading && posts.length === 0)) {
     return (
-        <div className="min-h-screen mb-8 bg-gray-50 mt-10">
-            {/* Main */}
-            <main className="pt-28 mx-auto max-w-7xl px-6">
-                {/* Top Section */}
-                {/* <section className="grid  grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Posts</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-3xl font-bold">{posts?.length || 0}</CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Active Tasks</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-3xl font-bold">34</CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Messages</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-3xl font-bold">5</CardContent>
-                    </Card>
-                </section> */}
-
-                {/* Content Section */}
-                <section className="flex  w-full   grid-cols-1 lg:grid-cols-3 gap-6">
-                    <Posts categories={categories} refresh={refresh} setRefresh={setRefresh} posts={posts} />
-                    <div className="col space-y-3 w-md ">
-                        <Card className="self-start w-xs">
-                            <CardHeader>
-                                <CardTitle>Quick Actions</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex flex-col gap-3">
-                                <Button onClick={() => router.push("/dashboard/create")} className="cursor-pointer">New Project</Button>
-                            </CardContent>
-                        </Card>
-                        <Clients />
-                    </div>
-                </section>
-
-                <section className="Clients mt-5">
-                </section>
-            </main>
-
-            {/* CTA Footer Section */}
-            {/* <section className="mt-20 bg-blue-600 text-white">
-                <div className="mx-auto max-w-7xl px-6 py-16 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <h2 className="text-3xl font-semibold">Tell us your vision</h2>
-                    <div className="flex gap-4">
-                        <Link href="/dashboard/create" className="btn cursor-pointer">New Project</Link>
-                        <Button variant="secondary">Join Us</Button>
-                    </div>
-                </div>
-            </section> */}
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+          <p className="text-sm font-medium text-gray-500">Authenticating...</p>
         </div>
+      </div>
     );
+  }
+
+  // 2. SAFETY CHECK: Jika tidak ada user (setelah loading selesai), jangan render apa-apa
+  if (!user?.email) return null;
+
+  // 3. MAIN UI: Hanya tampil jika user valid
+  return (
+    <div className="min-h-screen mb-8 bg-gray-50 mt-10">
+      <main className="pt-28 mx-auto max-w-7xl px-6">
+
+        <section className="flex flex-col lg:flex-row w-full gap-6">
+          {/* List Posts */}
+          <div className="flex-1">
+            <Posts
+              categories={categories}
+              refresh={refresh}
+              setRefresh={setRefresh}
+              posts={posts}
+            />
+          </div>
+
+          {/* Sidebar */}
+          <div className="flex flex-col gap-4 w-full lg:w-80">
+            <Card className="shadow-sm border-none">
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <Button
+                  onClick={() => router.push("/dashboard/create")}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  New Project
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Clients />
+          </div>
+        </section>
+
+      </main>
+    </div>
+  );
 }

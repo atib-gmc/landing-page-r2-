@@ -1,43 +1,65 @@
 "use client";
+
 import { client } from "@/lib/supabaseClient";
-import React, { useEffect, useState } from "react";
-// import { DropdownMenuCheckboxes } from "./dropDown";
+import { useEffect, useState } from "react";
 import { User } from "@supabase/auth-js/dist/module/lib/types";
 
-export default function GetUser(): User | null {
-    const [user, setUser] = useState<User | null>(null);
+/**
+ * Hook untuk mengambil data user dari Supabase Auth.
+ * Returns:
+ * - undefined: Sedang memuat (loading/checking session)
+ * - null: Sesi selesai dicek dan user TIDAK login
+ * - User object: User berhasil login
+ */
+export default function GetUser(): User | null | undefined {
+  // 1. Inisialisasi dengan 'undefined' (Status: Loading)
+  const [user, setUser] = useState<User | null | undefined>(undefined);
 
-    useEffect(() => {
-        // Get initial user
-        const getInitialUser = async () => {
-            const {
-                data: { user },
-            } = await client.auth.getUser();
-            console.log(user)
-            setUser(user);
-        };
-
-        getInitialUser();
-
-        // Listen for auth state changes
+  useEffect(() => {
+    // Fungsi untuk mengecek user saat pertama kali halaman dimuat
+    const getInitialUser = async () => {
+      try {
         const {
-            data: { subscription },
-        } = client.auth.onAuthStateChange((event, session) => {
-            if (event === "SIGNED_IN" && session?.user) {
-                setUser(session.user);
-            } else if (event === "SIGNED_OUT") {
-                setUser(null);
-            }
-        });
+          data: { user: supabaseUser },
+          error
+        } = await client.auth.getUser();
 
-        // Cleanup subscription on unmount
-        return () => {
-            subscription?.unsubscribe();
-        };
-    }, []);
+        if (error) {
+          console.error("Error fetching user:", error.message);
+          setUser(null);
+          return;
+        }
 
-    if (!user) return null;
+        // Set ke null jika tidak ada, atau set ke objek user jika ada
+        setUser(supabaseUser ?? null);
+      } catch (err) {
+        console.error("Unexpected error:", err);
+        setUser(null);
+      }
+    };
 
-    return user
+    getInitialUser();
 
+    // 2. Listen untuk perubahan status auth (Login, Logout, Token Refresh)
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((event, session) => {
+      console.log("Auth Event:", event);
+
+      if (session?.user) {
+        setUser(session.user);
+      } else {
+        // Jika event adalah SIGNED_OUT atau session habis
+        setUser(null);
+      }
+    });
+
+    // Cleanup subscription saat komponen tidak lagi digunakan (unmount)
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  // Mengembalikan status user (bisa undefined, null, atau User)
+  return user;
 }

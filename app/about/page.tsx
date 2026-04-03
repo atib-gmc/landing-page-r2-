@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import client from "@/lib/supabaseClient";
 import { FaEdit } from "react-icons/fa";
 import { deleteFromR2, getImagesFromFolder, uploadToR2 } from "@/lib/r2";
+import GetUser from "../utils/GetUser";
 
 // Define the interface for clarity
 interface PageContent {
@@ -25,7 +26,7 @@ export default function AboutPage() {
     ? URL.createObjectURL(heroImage)
     : heroImage;
   // Mocking GetUser - replace with your actual auth hook
-  const user = { role: 'admin' };
+  const user = GetUser()
   const isEditable = user !== null;
 
   useEffect(() => {
