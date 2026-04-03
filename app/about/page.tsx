@@ -56,7 +56,8 @@ export default function AboutPage() {
   useEffect(() => {
     async function getPageContent() {
       const urlImage = await getImagesFromFolder("heroAbout")
-      if (urlImage) {
+      if (urlImage.length > 0) {
+        console.log(urlImage)
         const { key, url } = urlImage[0]
         setHeroImage({ url, key })
       }
